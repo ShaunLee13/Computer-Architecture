@@ -164,9 +164,13 @@ class CPU:
             operand_a = self.ram_read(self.pc + 1)
             operand_b = self.ram_read(self.pc + 2)
 
-            # Once we have our instruction, we'll access the location on our branch table at that instruction, passing in our operand a and b.
+            # Once we have our instruction, we'll access the location on our branch table at that instruction if it exists, passing in our operand a and b.
             # This will send them to our handle functions
-            self.branch_table[self.ir](operand_a, operand_b)
+            if self.ir in self.branch_table:
+                self.branch_table[self.ir](operand_a, operand_b)
+            else:
+                print("Unrecognized operation. Terminating process.")
+                self.running = False
 
             #afterwards, we want to increment our counter by 1 + the number of operands that were necessary for our operation (determined by the first 2 places of our binary number)
             self.pc += (self.ir >> 6) + 1
