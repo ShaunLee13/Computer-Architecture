@@ -17,6 +17,8 @@ LDI = 0b10000010 #LDI
 PRN = 0b01000111 #PRN
 MUL = 0b10100010 #MUL
 HLT = 0b00000001 #HLT
+PUSH = 0b01000101 #PUSH
+POP = 0b01000110 #POP
 
 class CPU:
     """Main CPU class."""
@@ -32,6 +34,8 @@ class CPU:
         self.branch_table[PRN] = self.handle_prn
         self.branch_table[MUL] = self.handle_mul
         self.branch_table[HLT] = self.handle_hlt
+        self.branch_table[PUSH] = self.handle_push
+        self.branch_table[POP] = self.handle_pop
 
         # Internal regs
         self.pc = 0 # Program Counter: where current instruction is located
@@ -136,6 +140,18 @@ class CPU:
     def handle_hlt(self, op_a, op_b):
         self.running = False
 
+    def handle_push(self, op_a, op_b):
+        self.reg[7] -= 1
+
+        val = self.reg[op_a]
+        self.ram[self.reg[7]] = val 
+
+    def handle_pop(self, op_a, op_b):
+        val = self.ram[self.reg[7]]
+        self.reg[op_a] = val
+
+        self.reg[7] += 1
+
     ###END BRANCH TABLE FUNCTIONS###
 
     def run(self):
@@ -144,7 +160,7 @@ class CPU:
         while self.running:
             # read the address stored at pc, store it in ir.
             # we also create opers a and b in case we need them for LDI            
-            self.ir = self.ram_read(self.pc)
+            self.ir = self.ram[self.pc]
             operand_a = self.ram_read(self.pc + 1)
             operand_b = self.ram_read(self.pc + 2)
 
