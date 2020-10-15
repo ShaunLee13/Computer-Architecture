@@ -156,6 +156,8 @@ class CPU:
         self.ram[self.reg[7]] = val 
 
     def handle_pop(self, op_a, op_b):
+        # access the value in our memory located at our stack pointer
+        # then set the value in our register at op_a and increment stack counter
         val = self.ram[self.reg[7]]
         self.reg[op_a] = val
 
@@ -203,7 +205,7 @@ class CPU:
                 self.running = False
 
             #afterwards, we want to increment our counter by 1 + the number of operands that were necessary for our operation (determined by the first 2 places of our binary number)
-            if (self.ir >> 4) & 0b00000001:
+            if self.ir & 0b00010000 != 0:
                 continue
             else: 
                 self.pc += (self.ir >> 6) + 1
