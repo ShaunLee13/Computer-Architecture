@@ -26,6 +26,13 @@ CMP = 0b10100111 #CMP
 JMP  = 0b01010100 #JMP
 JEQ  = 0b01010101 #JEQ
 JNE  = 0b01010110 #JNE
+AND  = 0b10101000 #AND
+OR   = 0b10101010 #OR
+XOR  = 0b10101011 #XOR
+NOT  = 0b01101001 #NOT
+SHL  = 0b10101100 #SHL
+SHR  = 0b10101101 #SHR
+MOD  = 0b10100100 #MOD
 
 class CPU:
     """Main CPU class."""
@@ -50,7 +57,13 @@ class CPU:
         self.branch_table[JMP] = self.handle_jmp
         self.branch_table[JEQ] = self.handle_jeq
         self.branch_table[JNE] = self.handle_jne
-
+        self.branch_table[AND] = self.handle_and
+        self.branch_table[OR] = self.handle_or
+        self.branch_table[XOR] = self.handle_xor
+        self.branch_table[NOT] = self.handle_not
+        self.branch_table[SHL] = self.handle_shl
+        self.branch_table[SHR] = self.handle_shr
+        self.branch_table[MOD] = self.handle_mod
         # Internal regs
         self.pc = 0 # Program Counter: where current instruction is located
         self.ir = 0 # Instruction Register: copy of the current instruction
@@ -118,15 +131,36 @@ class CPU:
         #elif op == "SUB": etc
         elif op == "MUL":
             self.reg[reg_a] *= self.reg[reg_b]
+        # Sprint Stretch Operations
+        elif op == "AND":
+            self.reg[reg_a] &= self.reg[reg_b]
+        elif op == "OR":
+            self.reg[reg_a] |= self.reg[reg_b]
+        elif op == "XOR":
+            self.reg[reg_a] ^= self.reg[reg_b]
+        elif op == "NOT":
+            self.reg[reg_a] != self.reg[reg_a]
+        elif op == "SHL":
+            self.reg[reg_a] <<= self.reg[reg_b]
+        elif op == "SHR":
+            self.reg[reg_a] >>= self.reg[reg_b]
+        elif op == "MOD":
+            if reg_b == 0:
+                print('Error, cannot divide by zero.')
+                self.running = False
+            else:
+                self.reg[reg_a] %= self.reg[reg_b]
+            
+        # End SSO
         elif op  == "CMP":
             #`FL` bits: `00000LGE`
-            # we'll do comparisons against each condition. LGE stands for less, greater, equal. bit is changed accordingly to equal true or false
             if self.reg[reg_a] < self.reg[reg_b]:
                 self.fl = 0b00000100
             elif self.reg[reg_a] > self.reg[reg_b]:
                 self.fl = 0b00000010
             else:
                 self.fl = 0b00000001
+
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -151,22 +185,12 @@ class CPU:
         print()
     ###END OF PROGRAM FUNCTIONS###
 
-
     ###BRANCH TABLE FUNCTIONS###
     def handle_ldi(self):
         self.reg[self.op_a] = self.op_b
 
     def handle_prn(self):
         print(f'Register at {self.op_a} contains {self.reg[self.op_a]}')
-
-    def handle_add(self):
-        self.alu('ADD', self.op_a, self.op_b)
-
-    def handle_mul(self):
-        self.alu('MUL', self.op_a, self.op_b)
-
-    def handle_cmp(self):
-        self.alu('CMP', self.op_a, self.op_b)
 
     def handle_hlt(self):
         self.running = False
@@ -226,7 +250,27 @@ class CPU:
         else:
             self.pc += 2
 
-
+    #####ALL ALU BASED HANDLERS#####
+    def handle_add(self):
+        self.alu('ADD', self.op_a, self.op_b)
+    def handle_mul(self):
+        self.alu('MUL', self.op_a, self.op_b)
+    def handle_cmp(self):
+        self.alu('CMP', self.op_a, self.op_b)
+    def handle_and(self):
+        self.alu('AND', self.op_a, self.op_b)
+    def handle_or(self):
+        self.alu('OR', self.op_a, self.op_b)
+    def handle_xor(self):
+        self.alu('XOR', self.op_a, self.op_b)
+    def handle_not(self):
+        self.alu('NOT', self.op_a, self.op_b)
+    def handle_shl(self):
+        self.alu('SHL', self.op_a, self.op_b)
+    def handle_shr(self):
+        self.alu('SHR', self.op_a, self.op_b)
+    def handle_mod(self):
+        self.alu('MOD', self.op_a, self.op_b)
     ###END BRANCH TABLE FUNCTIONS###
 
     def run(self):
