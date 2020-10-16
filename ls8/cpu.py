@@ -22,6 +22,7 @@ PUSH = 0b01000101 #PUSH
 POP = 0b01000110 #POP
 CALL = 0b01010000 #CALL
 RET = 0b00010001 #RET
+CMP = 0b10100111 #CMP
 
 class CPU:
     """Main CPU class."""
@@ -37,6 +38,7 @@ class CPU:
         self.branch_table[PRN] = self.handle_prn
         self.branch_table[ADD] = self.handle_add
         self.branch_table[MUL] = self.handle_mul
+        self.branch_table[CMP] = self.handle_cmp
         self.branch_table[HLT] = self.handle_hlt
         self.branch_table[PUSH] = self.handle_push
         self.branch_table[POP] = self.handle_pop
@@ -108,6 +110,15 @@ class CPU:
         #elif op == "SUB": etc
         elif op == "MUL":
             self.reg[reg_a] *= self.reg[reg_b]
+        elif op  == "CMP":
+            #`FL` bits: `00000LGE`
+            # we'll do comparisons against each condition. LGE stands for less, greater, equal. bit is changed accordingly to equal true or false
+            if self.reg[reg_a] < self.reg[reg_b]:
+                self.fl = 0b00000100
+            elif self.reg[reg_a] > self.reg[reg_b]:
+                self.fl = 0b00000010
+            else:
+                self.fl = 0b00000001
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -145,6 +156,9 @@ class CPU:
 
     def handle_mul(self, op_a, op_b):
         self.alu('MUL', op_a, op_b)
+
+    def handle_cmp(self, op_a, op_b):
+        self.alu('CMP', op_a, op_b)
 
     def handle_hlt(self, op_a, op_b):
         self.running = False
