@@ -23,6 +23,9 @@ POP = 0b01000110 #POP
 CALL = 0b01010000 #CALL
 RET = 0b00010001 #RET
 CMP = 0b10100111 #CMP
+JMP  = 0b01010100 #JMP
+JEQ  = 0b01010101 #JEQ
+JNE  = 0b01010110 #JNE
 
 class CPU:
     """Main CPU class."""
@@ -44,6 +47,9 @@ class CPU:
         self.branch_table[POP] = self.handle_pop
         self.branch_table[CALL] = self.handle_call
         self.branch_table[RET] = self.handle_ret
+        self.branch_table[JMP] = self.handle_jmp
+        self.branch_table[JEQ] = self.handle_jeq
+        self.branch_table[JNE] = self.handle_jne
 
         # Internal regs
         self.pc = 0 # Program Counter: where current instruction is located
@@ -51,6 +57,8 @@ class CPU:
         self.mar = 0 # Memory Address Register: address to read/write to
         self.mdr = 0 # Memory Data Register: the value being read/wrote
         self.fl = 0 # Flag Register: holds the current flags status
+        self.op_a = 0 # Operand A
+        self.op_b = 0 # Operand B
         self.running = True
 
         self.reg[7] = 0xF4 # Stack Pointer: points to the top of our stack, or F4 if empty
@@ -145,39 +153,40 @@ class CPU:
 
 
     ###BRANCH TABLE FUNCTIONS###
-    def handle_ldi(self, op_a, op_b):
-        self.reg[op_a] = op_b
+    def handle_ldi(self):
+        self.reg[self.op_a] = self.op_b
 
-    def handle_prn(self, op_a, op_b):
-        print(f'Register at {op_a} contains {self.reg[op_a]}')
+    def handle_prn(self):
+        print(f'Register at {self.op_a} contains {self.reg[self.op_a]}')
 
-    def handle_add(self, op_a, op_b):
-        self.alu('ADD', op_a, op_b)
+    def handle_add(self):
+        self.alu('ADD', self.op_a, self.op_b)
 
-    def handle_mul(self, op_a, op_b):
-        self.alu('MUL', op_a, op_b)
+    def handle_mul(self):
+        self.alu('MUL', self.op_a, self.op_b)
 
-    def handle_cmp(self, op_a, op_b):
-        self.alu('CMP', op_a, op_b)
+    def handle_cmp(self):
+        self.alu('CMP', self.op_a, self.op_b)
 
-    def handle_hlt(self, op_a, op_b):
+    def handle_hlt(self):
         self.running = False
 
-    def handle_push(self, op_a, op_b):
+    def handle_push(self):
         self.reg[7] -= 1
 
-        val = self.reg[op_a]
+        val = self.reg[self.op_a]
         self.ram[self.reg[7]] = val 
 
-    def handle_pop(self, op_a, op_b):
+    def handle_pop(self):
         # access the value in our memory located at our stack pointer
-        # then set the value in our register at op_a and increment stack counter
+        # then set the value in our register at self.op_a and increment stack counter
         val = self.ram[self.reg[7]]
-        self.reg[op_a] = val
+        self.reg[self.op_a] = val
 
         self.reg[7] += 1
 
-    def handle_call(self, op_a, op_b):
+    def handle_call(self):
+        #NOTE: sets pc, will trigger if conditional for pc        
         ret_addr = self.pc + 2
         
         # Decrement the stack pointer
@@ -187,15 +196,35 @@ class CPU:
         top_of_stack_addr = self.reg[7]
         self.ram[top_of_stack_addr] = ret_addr
 
-        sub_addr = self.reg[op_a]
+        sub_addr = self.reg[self.op_a]
 
         self.pc = sub_addr
 
-    def handle_ret(self, op_a, op_b):
+    def handle_ret(self):
+        #NOTE: sets pc, will trigger if conditional for pc
         ret_addr = self.ram[self.reg[7]]
 
         self.reg[7] += 1
         self.pc = ret_addr
+
+    def handle_jmp(self):
+        # self.op_a will equal target register; access register and set address value stored in there to our pc
+        #NOTE: sets pc, will trigger if conditional for pc
+        self.pc = self.reg[self.op_a]
+    
+    def handle_jeq(self):
+        # if LGE is set to E = 1, call jump handler to jump to self.op_a
+        if self.fl == 0b00000001:
+            self.handle_jmp()
+        else:
+            self.pc += 2
+    
+    def handle_jne(self):
+        # if LGE is not set to E = 1, call jump handler to jump to self.op_a
+        if self.fl != 0b00000001:
+            self.handle_jmp()
+        else:
+            self.pc += 2
 
 
     ###END BRANCH TABLE FUNCTIONS###
@@ -207,13 +236,13 @@ class CPU:
             # read the address stored at pc, store it in ir.
             # we also create opers a and b in case we need them for LDI            
             self.ir = self.ram[self.pc]
-            operand_a = self.ram_read(self.pc + 1)
-            operand_b = self.ram_read(self.pc + 2)
+            self.op_a = self.ram_read(self.pc + 1)
+            self.op_b = self.ram_read(self.pc + 2)
 
             # Once we have our instruction, we'll access the location on our branch table at that instruction if it exists, passing in our operand a and b.
             # This will send them to our handle functions
             if self.ir in self.branch_table:
-                self.branch_table[self.ir](operand_a, operand_b)
+                self.branch_table[self.ir]()
             else:
                 print("Unrecognized operation. Terminating process.")
                 self.running = False
